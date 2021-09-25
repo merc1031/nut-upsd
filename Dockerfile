@@ -2,7 +2,7 @@ FROM alpine:3.12
 
 LABEL maintainer="docker@upshift.fr"
 
-ENV NUT_VERSION 2.7.4
+ENV NUT_VERSION 2d5423bf87b407a304c32813bdb0bcde7df6d7f8
 
 ENV UPS_NAME="ups"
 ENV UPS_DESC="UPS"
@@ -24,20 +24,29 @@ RUN set -ex; \
 	apk add --no-cache --virtual .build-deps \
 		libusb-compat-dev \
 		build-base \
+		python3 \
+		perl \
+		autoconf \
+		automake \
+		libtool \
+		pkgconfig \
 	; \
+	ln -sf python3 /usr/bin/python; \
 	# download and extract
 	cd /tmp; \
-	wget http://www.networkupstools.org/source/2.7/nut-$NUT_VERSION.tar.gz; \
+	wget https://github.com/networkupstools/nut/tarball/${NUT_VERSION} -O nut-${NUT_VERSION}.tar.gz; \
 	tar xfz nut-$NUT_VERSION.tar.gz; \
-	cd nut-$NUT_VERSION \
+	ls; \
+	cd networkupstools-nut-$(echo $NUT_VERSION | cut -c-7) \
 	; \
 	# build
+	./autogen.sh; \
 	./configure \
 		--prefix=/usr \
 		--sysconfdir=/etc/nut \
 		--disable-dependency-tracking \
 		--enable-strip \
-		--disable-static \
+		--enable-static \
 		--with-all=no \
 		--with-usb=yes \
 		--datadir=/usr/share/nut \
@@ -45,8 +54,12 @@ RUN set -ex; \
 		--with-statepath=/var/run/nut \
 		--with-user=nut \
 		--with-group=nut \
+		--enable-maintainer-mode \
+		--srcdir=. \
 	; \
 	# install
+	make \
+	; \
 	make install \
 	; \
 	# create nut user
